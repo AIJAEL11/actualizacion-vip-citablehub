@@ -1,0 +1,339 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/citablehub_app/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  displayName     String?
+  avatarUrl       String?
+  passwordHash    String?
+  role            String    @default("seeker")
+  subscription    String    @default("free")
+  oauthProvider   String?
+  byoApiKey       String?
+  queryCountToday Int       @default(0)
+  queryResetDate  String?
+  savedProjects       String[]  @default([])
+  stripeCustomerId    String?   @unique
+  stripeSubscriptionId String?
+  subscriptionStatus  String?   @default("inactive")
+  subscriptionEndDate DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  projects        Project[]
+  boostOrders     BoostOrder[]
+  chatSessions    ChatSession[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  claimRequests   ClaimRequest[]
+  platforms       Platform[]
+  mcpTokens       McpToken[]
+}
+
+model Project {
+  id                  String    @id @default(cuid())
+  name                String
+  slug                String    @unique
+  url                 String
+  email               String    @default("")
+  summary             String
+  description         String    @db.Text
+  outcome             String    @db.Text @default("")
+  targetAudience      String    @default("")
+  category            String
+  subcategory         String?
+  tags                String[]  @default([])
+  status              String    @default("invited")
+  claimable           Boolean   @default(true)
+  chVerId             String?   @unique
+  logoUrl             String?
+  coverUrl            String?
+  isSeeded            Boolean   @default(false)
+  platformPartner     Boolean   @default(false)
+  govIdDocUrl         String?
+  llcDocUrl           String?
+  verificationStatus  String    @default("idle")
+  impressions         Int       @default(0)
+  clicks              Int       @default(0)
+  savesCount          Int       @default(0)
+  gqiEarned           Int       @default(0)
+  trustScore          Float     @default(0)
+  boostScore          Float     @default(0)
+  aiReadinessScore    Float     @default(0)
+  dynamicScore        Float     @default(0)
+  rankPosition        Int       @default(0)
+  prevRankPosition    Int       @default(0)
+  founderName         String?
+  launchDate          DateTime?
+  version             String?
+  demoUrl             String?
+  supportUrl          String?
+  privacyUrl          String?
+  termsUrl            String?
+  contactUrl          String?
+  socialLinks         Json?     @default("{}")
+  alternatives        String[]  @default([])
+  differentiators     String[]  @default([])
+  notIdealFor         String?
+  useCaseTags         String[]  @default([])
+  audienceTags        String[]  @default([])
+  industryTags        String[]  @default([])
+  platformType        String?
+  businessType        String?
+  lastReviewed        DateTime?
+  ownerId             String?
+  owner               User?     @relation(fields: [ownerId], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  evidences           Evidence[]
+  projectUpdates      ProjectUpdate[]
+  boostOrders         BoostOrder[]
+  analyticsEvents     AnalyticsEvent[]
+  trustSignals        TrustSignal[]
+  claimRequests       ClaimRequest[]
+
+  @@index([category])
+  @@index([status])
+  @@index([ownerId])
+  @@index([claimable])
+  @@index([trustScore])
+  @@index([dynamicScore])
+}
+
+model Evidence {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  title       String
+  type        String    @default("url")
+  content     String    @db.Text
+  verified    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+}
+
+model ProjectUpdate {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  title       String
+  content     String    @db.Text
+  description String?
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+}
+
+model BoostOrder {
+  id                  String    @id @default(cuid())
+  userId              String?
+  user                User?     @relation(fields: [userId], references: [id])
+  projectId           String?
+  project             Project?  @relation(fields: [projectId], references: [id])
+  url                 String
+  email               String
+  projectName         String
+  category            String
+  packType            String?
+  amount              Float?    @default(0)
+  gqiLimit            Int?      @default(0)
+  gqiDelivered        Int?      @default(0)
+  totalGQIRequired    Int       @default(0)
+  impressionsDelivered Int      @default(0)
+  pacingSpeed         String    @default("even")
+  status              String    @default("active")
+  targetAudience      String?
+  outcome             String?
+  paymentAmount       Float?    @default(0)
+  stripeSessionId     String?
+  scanResults         Json?
+  boostStartDate      DateTime?
+  boostEndDate        DateTime?
+  stripePaymentIntentId String?
+  createdAt           DateTime  @default(now())
+
+  @@index([userId])
+  @@index([status])
+}
+
+model ChatSession {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  messages  Json      @default("[]")
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model Category {
+  id          String  @id
+  name        String
+  description String
+  count       Int     @default(0)
+}
+
+model IntentTag {
+  id          String  @id
+  name        String
+  description String
+  count       Int     @default(0)
+}
+
+model TrustSignal {
+  id              String    @id @default(cuid())
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id])
+  schemaValid     Boolean   @default(false)
+  hasStructuredData Boolean @default(false)
+  hasEvidence     Boolean   @default(false)
+  lastChecked     DateTime  @default(now())
+  details         Json?     @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([projectId])
+}
+
+model ClaimRequest {
+  id          String    @id @default(cuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  method      String    @default("email")
+  status      String    @default("pending")
+  verifyToken String?   @unique
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([status])
+}
+
+model AnalyticsEvent {
+  id        String    @id @default(cuid())
+  type      String
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id])
+  userId    String?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  @@index([type])
+  @@index([projectId])
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  type       String    @default("general")
+  title      String
+  message    String    @db.Text
+  read       Boolean   @default(false)
+  actionUrl  String?
+  projectId  String?
+  metadata   Json?
+  emailSent  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model AuditLog {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  email     String
+  action    String
+  details   String    @db.Text
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MCP Gateway (additive — new tables only, no changes to existing tables)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// A SaaS platform registered by a builder through the MCP Gateway.
+// It is the builder/MCP-facing entity; its public directory listing is
+// materialized as a Project (linked via projectId) so the public surface
+// (profile, badge, sitemap, ranking) stays unified.
+model Platform {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  url         String
+  description String    @db.Text @default("")
+  stack       String[]  @default([])
+  geoScore    Float     @default(0)
+  status      String    @default("registered") // registered | analyzed | listed
+  source      String    @default("mcp")         // mcp | form
+  projectId   String?   @unique                 // linked public directory listing
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id])
+  listedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  geoAudits   GeoAudit[]
+  badge       Badge?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// A point-in-time GEO audit of a platform (0-100 with a per-dimension breakdown).
+model GeoAudit {
+  id          String    @id @default(cuid())
+  platformId  String
+  platform    Platform  @relation(fields: [platformId], references: [id])
+  score       Float     @default(0)
+  breakdown   Json      @default("{}")
+  source      String    @default("mcp")
+  createdAt   DateTime  @default(now())
+
+  @@index([platformId])
+}
+
+// The embeddable "Citable Verified" badge for a platform (one per platform).
+model Badge {
+  id          String    @id @default(cuid())
+  platformId  String    @unique
+  platform    Platform  @relation(fields: [platformId], references: [id])
+  embedCode   String    @db.Text
+  clicks      Int       @default(0)
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+// A hashed Personal Access Token used to authenticate MCP requests.
+// Only the SHA-256 hash is stored — the plaintext token is shown once on creation.
+model McpToken {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  tokenHash   String    @unique
+  label       String    @default("MCP token")
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  @@index([userId])
+}
